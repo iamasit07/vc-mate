@@ -1,18 +1,23 @@
-import express from 'express';
-import { Server, Socket } from 'socket.io';
-import bodyParser from 'body-parser';
+import { Server } from 'socket.io';
 
-const app = express();
-const io = new Server();
+const io = new Server(8000, {
+    cors: true
+});
 
-app.use(bodyParser.json());
+const emailToSocketMapping = new Map();
+const socketIdToEmailMapping = new Map();
 
 io.on("connection", (socket) => {
+    console.log("Connection Success", socket.id);
+    socket.on("room:join", (data) => {
+        const { name, email, roomId } = data;
 
+        emailToSocketMapping.set(email, socket.id);
+        socketIdToEmailMapping.set(socket.id, email);
+
+        io.to(roomId).emit('user:joined', { name, email, id: socket.id })
+
+        socket.join(roomId);
+        io.to(socket.id).emit('room:join', data);
+    });
 });
-
-app.listen(8000, () => {
-    console.log(`Server is listening to Port : 8000`);
-});
-
-io.listen(8001);
